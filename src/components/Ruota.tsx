@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import type { RisultatoGiro, Spicchio, StatoApp, Vincita } from "@/lib/tipi";
+import { avviaSuonoRoulette } from "@/lib/suono-roulette";
+import { testoSuColore, type RisultatoGiro, type Spicchio, type StatoApp, type Vincita } from "@/lib/tipi";
+
+const DURATA_GIRO = 10;
+const GIRI_EXTRA = 6;
 
 function punto(angolo: number, raggio: number): [number, number] {
   const rad = ((angolo - 90) * Math.PI) / 180;
@@ -78,7 +82,7 @@ function Disco({
         const inizio = indice * ampiezza;
         const fine = spicchi.length === 1 ? 359.99 : inizio + ampiezza;
         const centro = inizio + ampiezza / 2;
-        const tanti = spicchi.length > 12;
+        const tanti = spicchi.length > 8;
         const raggioIcona = tanti ? 33.2 : 31.5;
         const lato = tanti ? 8.4 : spicchi.length > 6 ? 11 : 14;
         const [mx, my] = punto(centro, raggioIcona);
@@ -87,9 +91,10 @@ function Disco({
         const righe = nomeRuota(spicchio.nome);
         const giro = `rotate(${centro} ${mx} ${my})`;
         const giroTesto = `rotate(${centro} ${tx} ${ty})`;
+        const testo = testoSuColore(spicchio.colore);
         return (
           <g key={spicchio.id}>
-            <path d={percorso(inizio, fine)} fill={spicchio.colore} stroke="#fff6df" strokeWidth="0.45" />
+            <path d={percorso(inizio, fine)} fill={spicchio.colore} stroke="#111111" strokeWidth="0.4" />
             <circle cx={mx} cy={my} r={lato / 2 + 0.45} fill="#fff6df" />
             <circle cx={mx} cy={my} r={lato / 2} fill="#fffaf2" />
             {spicchio.fotoUrl ? (
@@ -113,9 +118,9 @@ function Disco({
               <text
                 x={tx}
                 y={ty}
-                fill="#fffaf2"
-                stroke="#1a120c"
-                strokeWidth="0.28"
+                fill={testo}
+                stroke={testo === "#1C140F" ? "#ffffff" : "#111111"}
+                strokeWidth="0.22"
                 paintOrder="stroke"
                 fontSize={misura}
                 fontWeight="700"
@@ -151,16 +156,18 @@ export function Ruota({ iniziale }: { iniziale: StatoApp }) {
   const [stato, setStato] = useState(iniziale);
   const [spicchi, setSpicchi] = useState(() => spicchiIniziali(iniziale));
   const [rotazione, setRotazione] = useState(0);
-  const [durata, setDurata] = useState(4.7);
+  const [durata, setDurata] = useState(DURATA_GIRO);
   const [vincita, setVincita] = useState<Vincita | null>(null);
   const [mostraVinto, setMostraVinto] = useState(false);
   const [busy, setBusy] = useState(false);
   const [errore, setErrore] = useState("");
   const [disegnata, setDisegnata] = useState(false);
   const blocco = useRef(false);
+  const fermaSuono = useRef<() => void>(() => undefined);
 
   useEffect(() => {
     setDisegnata(true);
+    return () => fermaSuono.current();
   }, []);
 
   const pezzi = spicchi.reduce((somma, spicchio) => {
@@ -182,8 +189,10 @@ export function Ruota({ iniziale }: { iniziale: StatoApp }) {
     try {
       const risultato = await chiama<RisultatoGiro>("/api/gira", { method: "POST" });
       const riduci = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      const secondi = riduci ? 0.25 : 4.7;
+      const secondi = riduci ? 0.25 : DURATA_GIRO;
       setDurata(secondi);
+      fermaSuono.current();
+      fermaSuono.current = riduci ? () => undefined : avviaSuonoRoulette(secondi);
       const foto = new Map(stato.premi.map((premio) => [premio.id, premio.fotoUrl]));
       setSpicchi(
         risultato.spicchi.map((spicchio) => ({
@@ -197,14 +206,16 @@ export function Ruota({ iniziale }: { iniziale: StatoApp }) {
         const base = ((attuale % 360) + 360) % 360;
         let delta = obiettivo - base;
         if (delta <= 0) delta += 360;
-        return attuale + delta + 360 * (riduci ? 1 : 5);
+        return attuale + delta + 360 * (riduci ? 1 : GIRI_EXTRA);
       });
-      await new Promise((resolve) => window.setTimeout(resolve, secondi * 1000 + 40));
+      await new Promise((resolve) => window.setTimeout(resolve, secondi * 1000 + 80));
+      fermaSuono.current();
       const nuovo = await ricarica();
       setVincita(nuovo.vincitaAperta ?? risultato.vincita);
       setMostraVinto(true);
       setSpicchi(spicchiIniziali(nuovo));
     } catch (problema) {
+      fermaSuono.current();
       const messaggio = problema instanceof Error ? problema.message : "Operazione non riuscita.";
       try {
         const nuovo = await ricarica();
@@ -281,9 +292,12 @@ export function Ruota({ iniziale }: { iniziale: StatoApp }) {
         </p>
       ) : null}
       <header className="testata">
-        <div>
-          <p className="sopra">Stand promozionale</p>
-          <h1>Ruota della fortuna</h1>
+        <div className="marchio">
+          <img src="/dazn-bet.svg" alt="DAZN BET" />
+          <div>
+            <p className="sopra">Stand promozionale</p>
+            <h1>Ruota della fortuna</h1>
+          </div>
         </div>
         <Link className="linkQuiet" href="/gestione">
           Gestione
@@ -311,8 +325,8 @@ export function Ruota({ iniziale }: { iniziale: StatoApp }) {
             <div className="disco discoVuoto" />
           )}
           <div className="vetro" aria-hidden="true" />
-          <div className="mozzo" aria-hidden="true">
-            <span>GIRA</span>
+          <div className="mozzo">
+            <img src="/dazn-bet-centro.svg" alt="" />
           </div>
         </div>
 

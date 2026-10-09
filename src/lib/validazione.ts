@@ -2,15 +2,16 @@ import { ErroreRuota, erroreDaCodice } from "./errori";
 
 const COLORE = /^#[0-9A-Fa-f]{6}$/;
 
+/** Nero, giallo DAZN BET, bianco e rosso roulette, alternati scuro/chiaro. */
 export const PALETTE = [
-  "#C83B2E",
-  "#E39B2B",
-  "#2F7D4A",
-  "#2C6BED",
-  "#7A45B5",
-  "#D4537E",
-  "#1F8A8A",
-  "#D46A2E",
+  "#111111",
+  "#E6FF00",
+  "#1A1A1A",
+  "#FFFFFF",
+  "#C8102E",
+  "#FFF4A3",
+  "#2A2A2A",
+  "#F4F4F4",
 ];
 
 export function colorePerIndice(indice: number): string {

@@ -293,7 +293,7 @@ export function Ruota({ iniziale }: { iniziale: StatoApp }) {
       ) : null}
       <header className="testata">
         <div className="marchio">
-          <img src="/dazn-bet.svg" alt="DAZN BET" />
+          <img src="/dazn-bet.png" alt="DAZN BET" />
           <div>
             <p className="sopra">Stand promozionale</p>
             <h1>Ruota della fortuna</h1>
@@ -326,7 +326,7 @@ export function Ruota({ iniziale }: { iniziale: StatoApp }) {
           )}
           <div className="vetro" aria-hidden="true" />
           <div className="mozzo">
-            <img src="/dazn-bet-centro.svg" alt="" />
+            <img src="/dazn-bet.png" alt="" />
           </div>
         </div>
 
